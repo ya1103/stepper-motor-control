@@ -5,6 +5,7 @@
  *      Author: Yousef
  */
 #include "timer.h"
+#include "std_types.h"
 #include "common_macros.h" /* To use the macros like SET_BIT */
 #include <avr/io.h> /* To use Timer Registers */
 #include <avr/interrupt.h> /* For Timers ISR */
@@ -91,8 +92,9 @@ void Timer_init(const Timer_ConfigType * Config_Ptr){
 		TCCR0 |= Config_Ptr->timer_clock;
 
 		if(Config_Ptr->timer_mode == Compare){
-			/* Enable compare mode */
-			TCCR0 |= (1<<WGM01);
+			/* Enable WGM01 for compare mode
+			 * Enable OC0 toggle on compare match */
+			TCCR0 |= (1<<WGM01) | (1 << COM00);
 
 			/* Insert compare value */
 			OCR0 = (uint8) Config_Ptr->timer_CompareMatchValue;
@@ -124,7 +126,10 @@ void Timer_init(const Timer_ConfigType * Config_Ptr){
 			/* Enable compare mode */
 			TCCR1B |= (1<<WGM12);
 
-			/* Inser compare value */
+			/* Enable OC1A toggle on compare match */
+			TCCR1A |= (1<<COM1A0);
+
+			/* Insert compare value */
 			OCR1A = Config_Ptr->timer_CompareMatchValue;
 
 			/* Clear bits 4 and 2 */
@@ -152,8 +157,9 @@ void Timer_init(const Timer_ConfigType * Config_Ptr){
 
 		if(Config_Ptr->timer_mode == Compare)
 		{
-			/* Enable compare mode */
-			TCCR2 |= (1<<WGM21);
+			/* Enable compare mode
+			 * Enable OC20 toggle on compare match */
+			TCCR2 |= (1<<WGM21) | (1<<COM20);
 
 			/* Insert compare value */
 			OCR2 = (uint8) Config_Ptr->timer_CompareMatchValue;

@@ -4,3 +4,9 @@ Debug/
 .cproject
 *.exe
 *.o
+*.d
+*.elf
+*.hex
+*.lss
+*.map
+*.mk

@@ -99,14 +99,14 @@ void Timer_init(const Timer_ConfigType * Config_Ptr){
 			/* Insert compare value */
 			OCR0 = (uint8) Config_Ptr->timer_CompareMatchValue;
 
-			/* Clear first two bits */
+			/* Clear first two bits of timer1 interrupts enable */
 			TIMSK &= 0xFC;
 
 			/* Enable compare interrupt */
 			TIMSK |= (1<<OCIE0);
 		} else if(Config_Ptr->timer_mode == Normal){
 
-			/* Clear first two bits */
+			/* Clear first two bits of timer0 interrupts enable */
 			TIMSK &= 0xFC;
 
 			/* Enable normal interrupt */
@@ -132,13 +132,13 @@ void Timer_init(const Timer_ConfigType * Config_Ptr){
 			/* Insert compare value */
 			OCR1A = Config_Ptr->timer_CompareMatchValue;
 
-			/* Clear bits 4 and 2 */
+			/* Clear bits 4 and 2 of timer1 interrupts enable */
 			TIMSK &= 0xEB;
 
 			/* Enable compare interrupt */
 			TIMSK |= (1<<OCIE1A);
 		} else if(Config_Ptr->timer_mode == Normal){
-			/* Clear bits 4 and 2 */
+			/* Clear bits 4 and 2 of timer1 interrupts enable */
 			TIMSK &= 0xEB;
 
 			/* Enable normal interrupt */
@@ -164,15 +164,15 @@ void Timer_init(const Timer_ConfigType * Config_Ptr){
 			/* Insert compare value */
 			OCR2 = (uint8) Config_Ptr->timer_CompareMatchValue;
 
-			/* Clear first two bits */
-			TIMSK &= 0xFC;
+			/* Clear last two bits of timer2 interrupts enable */
+			TIMSK &= 0x3F;
 
 			/* Enable compare interrupt */
 			TIMSK |= (1<<OCIE2);
 		} else if(Config_Ptr->timer_mode == Normal)
 		{
-			/* Clear first two bits */
-			TIMSK &= 0xFC;
+			/* Clear last two bits of timer2 interrupts enable */
+			TIMSK &= 0x3F;
 
 			/* Enable normal interrupt */
 			TIMSK |= (1<<TOIE2);

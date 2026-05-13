@@ -69,6 +69,13 @@ void GPIO_writePin(uint8 port_num, uint8 pin_num, uint8 value);
 
 /*
  * Description :
+ * Toggle the value either Logic High or Logic Low on the required pin
+ * If the input port number or pin number are not correct, The function will not handle the request.
+ */
+void GPIO_togglePin(uint8 port_num, uint8 pin_num);
+
+/*
+ * Description :
  * Read and return the value for the required pin, it should be Logic High or Logic Low.
  * If the input port number or pin number are not correct, The function will return Logic Low.
  */

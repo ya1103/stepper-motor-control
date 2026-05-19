@@ -31,6 +31,17 @@ void TB6600_init(){
 	//Set direction pin for driver 1 to HIGH
 	GPIO_writePin(DRIVER3_DIR_PORT, DRIVER3_DIR_PIN, LOGIC_HIGH);
 
+	//Enable all drivers using LOGIC LOW
 	GPIO_setupPinDirection(DRIVERS_EN_PORT, DRIVERS_EN_PIN, PIN_OUTPUT);
-	GPIO_writePin(DRIVERS_EN_PORT, DRIVERS_EN_PIN, LOGIC_HIGH);
+	GPIO_writePin(DRIVERS_EN_PORT, DRIVERS_EN_PIN, LOGIC_LOW);
+}
+/*
+ * Description:
+ * Reverses motor direction by Toggling DIR+ pin
+ */
+void TB6600_reverse(){
+
+	//Select the DIR of the driver to be reversed
+	GPIO_togglePin(DRIVER1_DIR_PORT, DRIVER1_DIR_PIN);
+
 }

@@ -42,9 +42,15 @@
  *******************************************************************************/
 
 /*
- * Description :
+ * Description:
  * Set up required pins for drivers as output and enable the drivers
  */
 void TB6600_init();
+
+/*
+ * Description:
+ * Reverses motor direction by Toggling DIR+ pin
+ */
+void TB6600_reverse();
 
 #endif /* TB6600_H_ */

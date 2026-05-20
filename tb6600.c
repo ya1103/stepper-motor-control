@@ -1,3 +1,4 @@
+
 /*
  * tb6600.c
  *
@@ -22,14 +23,14 @@ void TB6600_init(){
 	GPIO_setupPinDirection(DRIVER2_PULSE_PORT, DRIVER2_PULSE_PIN, PIN_OUTPUT);
 	GPIO_setupPinDirection(DRIVER2_DIR_PORT, DRIVER2_DIR_PIN, PIN_OUTPUT);
 
-	//Set direction pin for driver 1 to HIGH
-	GPIO_writePin(DRIVER2_DIR_PORT, DRIVER2_DIR_PIN, LOGIC_HIGH);
+	//Set direction pin for driver 2 to HIGH
+	GPIO_writePin(DRIVER2_DIR_PORT, DRIVER2_DIR_PIN, LOGIC_LOW);
 
 	GPIO_setupPinDirection(DRIVER3_PULSE_PORT, DRIVER3_PULSE_PIN, PIN_OUTPUT);
 	GPIO_setupPinDirection(DRIVER3_DIR_PORT, DRIVER3_DIR_PIN, PIN_OUTPUT);
 
-	//Set direction pin for driver 1 to HIGH
-	GPIO_writePin(DRIVER3_DIR_PORT, DRIVER3_DIR_PIN, LOGIC_HIGH);
+	//Set direction pin for driver 3 to HIGH
+	GPIO_writePin(DRIVER3_DIR_PORT, DRIVER3_DIR_PIN, LOGIC_LOW);
 
 	//Enable all drivers using LOGIC LOW
 	GPIO_setupPinDirection(DRIVERS_EN_PORT, DRIVERS_EN_PIN, PIN_OUTPUT);

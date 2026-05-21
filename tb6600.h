@@ -37,6 +37,10 @@
 #define DRIVER3_DIR_PORT     PORTC_ID
 #define DRIVER3_DIR_PIN      PIN2_ID
 
+/* Driver definition for stepper motor direction */
+#define CLOCKWISE			LOGIC_HIGH
+#define ANTICLOCKWISE		LOGIC_LOW
+
 /*******************************************************************************
  *                              Functions Prototypes                           *
  *******************************************************************************/

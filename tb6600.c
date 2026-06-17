@@ -14,22 +14,25 @@
  * Set up required pins for drivers as output and enable the drivers
  */
 void TB6600_init(){
+	//Driver1 is derived by pulses of Timer0
 	GPIO_setupPinDirection(DRIVER1_PULSE_PORT, DRIVER1_PULSE_PIN, PIN_OUTPUT);
 	GPIO_setupPinDirection(DRIVER1_DIR_PORT, DRIVER1_DIR_PIN, PIN_OUTPUT);
 
-	//Set direction pin for driver 1 to HIGH
+	//Set direction pin for driver 1
 	GPIO_writePin(DRIVER1_DIR_PORT, DRIVER1_DIR_PIN, CLOCKWISE);
 
+	//Driver2 is derived by pulses of Timer1
 	GPIO_setupPinDirection(DRIVER2_PULSE_PORT, DRIVER2_PULSE_PIN, PIN_OUTPUT);
 	GPIO_setupPinDirection(DRIVER2_DIR_PORT, DRIVER2_DIR_PIN, PIN_OUTPUT);
 
-	//Set direction pin for driver 2 to HIGH
+	//Set direction pin for driver 2
 	GPIO_writePin(DRIVER2_DIR_PORT, DRIVER2_DIR_PIN, ANTICLOCKWISE);
 
+	//Driver3 is derived by pulses of Timer2
 	GPIO_setupPinDirection(DRIVER3_PULSE_PORT, DRIVER3_PULSE_PIN, PIN_OUTPUT);
 	GPIO_setupPinDirection(DRIVER3_DIR_PORT, DRIVER3_DIR_PIN, PIN_OUTPUT);
 
-	//Set direction pin for driver 3 to HIGH
+	//Set direction pin for driver 3
 	GPIO_writePin(DRIVER3_DIR_PORT, DRIVER3_DIR_PIN, ANTICLOCKWISE);
 
 	//Enable all drivers using LOGIC LOW as driver is active low

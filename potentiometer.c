@@ -41,4 +41,7 @@ void POT_init(void){
 	GPIO_setupPinDirection(POT_PORT_ID, POT1_CHANNEL_ID, PIN_INPUT);
 	GPIO_setupPinDirection(POT_PORT_ID, POT2_CHANNEL_ID, PIN_INPUT);
 	GPIO_setupPinDirection(POT_PORT_ID, POT3_CHANNEL_ID, PIN_INPUT);
+
+	//initialize ADC module
+	ADC_init();
 }

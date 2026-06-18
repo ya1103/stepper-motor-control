@@ -219,6 +219,15 @@ void Timer_resetCounter(void){
 	TCNT2 = 0;
 }
 
+void Timer_updateCompareValue(uint8 value, Timer_ID_Type timer_ID){
+	if(timer_ID == Timer0){
+		OCR0 = value;
+	} else if(timer_ID == Timer1){
+		OCR1A = value;
+	} else if(timer_ID == Timer2){
+		OCR2 = value;
+	}
+}
 
 
 

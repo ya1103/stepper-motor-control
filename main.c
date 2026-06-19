@@ -10,34 +10,24 @@
 #include "tb6600.h"
 #include "limit_switch.h"
 #include "potentiometer.h"
+#include "plc.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/delay.h>
 
-unsigned int g_counter = 0;
-
-void T0_callBackFunction(){
-	g_counter++;
-
-	//2000000/125 no of micro seconds over time for each tick we get 16000
-	if(g_counter == 16000){
-		g_counter = 0;
-		//TB6600_reverse();
-	}
-}
-
 /*Function that computes OCR value from RPM argument
- * Returned value should update the OCR register in selected timer
+ * Returned value should update the OCR register in selected timer later on
  * Expected RPM parameter should range from 10 to 50 which was set in potentiometer.h file
  * Returned OCR value will also range from 22 to 116*/
 uint8 CalculateCompareValueFromRPM(uint8 RPM){
 	/* We should apply this formula
 	 *
 	 * OCRnA = 		0.3 * f_clk_IO
-        		----------------------  - 1
-         	 	 	64 * N * RPM
+				------------------------  - 1
+         	 	 	2 * uStep * N * RPM
 	Where:
  	 - f_clk_IO : clock frequency (Hz)
+ 	 - uStep	: microstep by tb6600 driver which is set manually on the hardware drive
 	 - N        : timer prescaler
  	 - RPM      : desired revolutions per minute
  	 - OCRnA    : output compare register value */
@@ -54,9 +44,12 @@ uint8 CalculateCompareValueFromRPM(uint8 RPM){
 	return NewCompareValue;
 }
 
+/* PLC signal flag
+ * Initial value should be FALSE until signal is received
+ * Variable is volatile as it will be altered by an external interrupt */
+volatile boolean PLC_signal_flag = FALSE;
+
 int main(){
-	//enable global interrupts
-	sei();
 
 	//configuration settings for timer0
 	Timer_ConfigType T0 = {
@@ -85,7 +78,16 @@ int main(){
 		Compare
 	};
 
-	Timer_setCallBack(T0_callBackFunction, Timer0);
+
+	//initiate required pin for PLC signal detection
+	PLC_driver_setup();
+
+	//Wait until PLC sends logic high signal then initiate all required drivers
+	while( !( checkForPLC_signal() == LOGIC_HIGH ) );
+
+	//Update Flag, as if we exit the above while loop that means we received the signal from PLC
+	PLC_signal_flag = TRUE;
+
 	//initiate timer0
 	Timer_init(&T0);
 
@@ -110,6 +112,12 @@ int main(){
 	//Flag for limit switch 2 to indicate if it was triggered before or not
 	boolean LS2_FLAG = FALSE;
 
+	//Flag that indicates if operation has been paused in any possible case
+	boolean OperationPaused = FALSE;
+
+	//Flag that indicates if Stepper Motor 1 has been paused by Timer0 due limit switch detection case
+	boolean	timer0_Paused = FALSE;
+
 	//RPM value that will be fetched by potentiometer1
 	uint8 stepperMotor1_RPM;
 
@@ -131,77 +139,133 @@ int main(){
 
 	while(1){
 
-		//Fetch RPM value required from potentiometer1 which is set by user
-		stepperMotor1_RPM = POT1_getValue();
-		//Calculate New compare match value from RPM by calling function
-		Timer0_NewCompareValue = CalculateCompareValueFromRPM(stepperMotor1_RPM);
-		//Update compare value of targeted timer
-		Timer_updateCompareValue(Timer0_NewCompareValue, Timer0);
-
-
-		//Fetch RPM value required from potentiometer1 which is set by user
-		stepperMotor2_RPM = POT2_getValue();
-		//Calculate New compare match value from RPM by calling function
-		Timer1_NewCompareValue = CalculateCompareValueFromRPM(stepperMotor2_RPM);
-		//Update compare value of targeted timer
-		Timer_updateCompareValue(Timer1_NewCompareValue, Timer1);
-
-		//Fetch RPM value required from potentiometer1 which is set by user
-		stepperMotor3_RPM = POT3_getValue();
-		//Calculate New compare match value from RPM by calling function
-		Timer2_NewCompareValue = CalculateCompareValueFromRPM(stepperMotor3_RPM);
-		//Update compare value of targeted timer
-		Timer_updateCompareValue(Timer2_NewCompareValue, Timer2);
-
-
-
-		//delay to resolve bouncing effect due to mechanical switch
-		_delay_ms(20);
-
-		if((LS1_check() == LS_TRIGGERED) && (LS2_check() == LS_TRIGGERED)){
-			//in this case it is abnormal so stop pulses for the stepper motor
-			//Timer_deInit(Timer0);
+		//Check PLC signal and update flag
+		if(checkForPLC_signal() == LOGIC_LOW){
+			PLC_signal_flag = FALSE;
 		} else{
-			if(LS1_check() == LS_TRIGGERED){
-				//to avoid toggling reverse while limit switch is triggered, we check our flag first.
-				if(LS1_FLAG == FALSE){
-					TB6600_reverse();
-					//after reversing alter the flag to be true
-					LS1_FLAG = TRUE;
+			PLC_signal_flag = TRUE;
+		}
+
+		/*If PLC signal is still high keep operation performing normally
+		 *If signal flag is logic low, then stop stepper motors by stopping timers*/
+		if(PLC_signal_flag == LOGIC_HIGH){
+
+			/* Check if operation was paused before
+			 * If yes then re-initiate timers to let stepper motors operate back again
+			 * If not then do nothing */
+			if(OperationPaused == TRUE){
+				//initiate timer0
+				Timer_init(&T0);
+
+				//initiate timer1
+				Timer_init(&T1);
+
+				//initiate timer2
+				Timer_init(&T2);
+
+				//Update flag to avoid re-initiating timers on every loop
+				OperationPaused = FALSE;
+			}
+
+			/*it is a safer approach to check if timer0 is already operating or not, before updating any register in it
+			 * we only check flag for this timer as there is another condition which de-inits the timer in special case
+			 * during the limit switch operation
+			 */
+			if(timer0_Paused == FALSE){
+
+				//Fetch RPM value required from potentiometer1 which is set by user
+				stepperMotor1_RPM = POT1_getValue();
+				//Calculate New compare match value from RPM by calling function
+				Timer0_NewCompareValue = CalculateCompareValueFromRPM(stepperMotor1_RPM);
+				//Update the compare match value in the related timer's structure
+				T0.timer_CompareMatchValue = Timer0_NewCompareValue;
+				//Update compare value of targeted timer
+				Timer_updateCompareValue(Timer0_NewCompareValue, Timer0);
+
+			}
+
+			//Fetch RPM value required from potentiometer1 which is set by user
+			stepperMotor2_RPM = POT2_getValue();
+			//Calculate New compare match value from RPM by calling function
+			Timer1_NewCompareValue = CalculateCompareValueFromRPM(stepperMotor2_RPM);
+			//Update the compare match value in the related timer's structure
+			T1.timer_CompareMatchValue = Timer1_NewCompareValue;
+			//Update compare value of targeted timer
+			Timer_updateCompareValue(Timer1_NewCompareValue, Timer1);
+
+			//Fetch RPM value required from potentiometer1 which is set by user
+			stepperMotor3_RPM = POT3_getValue();
+			//Calculate New compare match value from RPM by calling function
+			Timer2_NewCompareValue = CalculateCompareValueFromRPM(stepperMotor3_RPM);
+			//Update the compare match value in the related timer's structure
+			T2.timer_CompareMatchValue = Timer2_NewCompareValue;
+			//Update compare value of targeted timer
+			Timer_updateCompareValue(Timer2_NewCompareValue, Timer2);
+
+
+			//delay to resolve bouncing effect due to mechanical switch
+			_delay_ms(20);
+
+			if((LS1_check() == LS_TRIGGERED) && (LS2_check() == LS_TRIGGERED)){
+				//in this case it is abnormal so stop pulses for the stepper motor
+				Timer_deInit(Timer0);
+				//update flag
+				timer0_Paused = TRUE;
+
+			} else{
+
+				if(timer0_Paused == TRUE){
+					//then re-initiate Timer0 and update flag
+					Timer_init(&T0);
+					timer0_Paused = FALSE;
+				} else{
+					//do nothing
 				}
 
-				//skip to next iteration on each trigger detection
-				continue;
+				if(LS1_check() == LS_TRIGGERED){
+					//to avoid toggling reverse while limit switch is triggered, we check our flag first.
+					if(LS1_FLAG == FALSE){
+						TB6600_reverse();
+						//after reversing alter the flag to be true
+						LS1_FLAG = TRUE;
+					}
+
+					//skip to next iteration on each trigger detection
+					continue;
+
+					} else{
+						/*when limit switch is untriggered reset flag
+						 *to allow next reverse for stepper motor
+						 */
+						LS1_FLAG = FALSE;
+					}
+
+
+				if(LS2_check() == LS_TRIGGERED){
+					//to avoid toggling reverse while limit switch is triggered, we check our flag first.
+					if(LS2_FLAG == FALSE){
+						TB6600_reverse();
+						//after reversing alter the flag to be true
+						LS2_FLAG = TRUE;
+					}
+
+					//skip to next iteration on each trigger detection
+					continue;
 
 				} else{
 					/*when limit switch is untriggered reset flag
 					 *to allow next reverse for stepper motor
 					 */
-					LS1_FLAG = FALSE;
+					LS2_FLAG = FALSE;
 				}
-
-
-			if(LS2_check() == LS_TRIGGERED){
-				//to avoid toggling reverse while limit switch is triggered, we check our flag first.
-				if(LS2_FLAG == FALSE){
-					TB6600_reverse();
-					//after reversing alter the flag to be true
-					LS2_FLAG = TRUE;
-				}
-
-				//skip to next iteration on each trigger detection
-				continue;
-
-			} else{
-				/*when limit switch is untriggered reset flag
-				 *to allow next reverse for stepper motor
-				 */
-				LS2_FLAG = FALSE;
 			}
+		} else{
+			//If PLC signal has been set LOW pause the operation
+			Timer_deInit(Timer0);
+			Timer_deInit(Timer1);
+			Timer_deInit(Timer2);
+
+			OperationPaused = TRUE;
 		}
-
-
 	}
-
-
 }

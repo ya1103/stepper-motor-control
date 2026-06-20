@@ -14,6 +14,9 @@
 #define PLC_SIGNAL_PORT			PORTB_ID
 #define PLC_SIGNAL_PIN			PIN7_ID
 
+typedef enum {
+		START_OPERATION, PAUSE_OPERATION
+};
 
 /******* Function Prototypes **********/
 

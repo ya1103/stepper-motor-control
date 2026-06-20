@@ -112,6 +112,7 @@ At the end of each loop, the system applies a 20ms debounce delay and evaluates 
 
 The following diagram maps out the hardware relationships and the continuous state-machine logic executed by the microcontroller.
 
+```
 =============================================================================
                           [ HARDWARE PULSE CHAIN ]
 =============================================================================
@@ -205,7 +206,7 @@ The following diagram maps out the hardware relationships and the continuous sta
  │             │                     │                     └───────────────────────────┘
  │             │                     │                                   │
  └─────────────┴─────────────────────┴───────────────────────────────────┘
-
+```
 ---
 
 ## 🚨 Safety & Fault Handling

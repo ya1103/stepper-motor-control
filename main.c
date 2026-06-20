@@ -12,8 +12,8 @@
 #include "potentiometer.h"
 #include "plc.h"
 #include <avr/io.h>
-#include <avr/interrupt.h>
 #include <avr/delay.h>
+
 
 /*Function that computes OCR value from RPM argument
  * Returned value should update the OCR register in selected timer later on
@@ -43,11 +43,6 @@ uint8 CalculateCompareValueFromRPM(uint8 RPM){
 
 	return NewCompareValue;
 }
-
-/* PLC signal flag
- * Initial value should be FALSE until signal is received
- * Variable is volatile as it will be altered by an external interrupt */
-volatile boolean PLC_signal_flag = FALSE;
 
 int main(){
 
@@ -81,6 +76,11 @@ int main(){
 
 	//initiate required pin for PLC signal detection
 	PLC_driver_setup();
+
+	/* PLC signal flag
+	 * Initial value should be FALSE until signal is received */
+	boolean PLC_signal_flag = FALSE;
+
 
 	//Wait until PLC sends logic high signal then initiate all required drivers
 	while( !( checkForPLC_signal() == LOGIC_HIGH ) );
@@ -170,6 +170,7 @@ int main(){
 			/*it is a safer approach to check if timer0 is already operating or not, before updating any register in it
 			 * we only check flag for this timer as there is another condition which de-inits the timer in special case
 			 * during the limit switch operation
+			 *
 			 */
 			if(timer0_Paused == FALSE){
 

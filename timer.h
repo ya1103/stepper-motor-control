@@ -61,4 +61,7 @@ void Timer_setCallBack(void(*a_ptr)(void), Timer_ID_Type timer_ID );
 /* Reset all count registers for timers */
 void Timer_resetCounter(void);
 
+/* Updates timer OCR value which is passed as an argument */
+void Timer_updateCompareValue(uint8 value, Timer_ID_Type timer_ID);
+
 #endif /* TIMER_H_ */

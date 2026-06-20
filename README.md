@@ -50,6 +50,7 @@ Controls the speed of the motors by reading analog voltages and translating them
 * **Math Logic:** The ADC value alters the Output Compare Register (OCR) using the multi-line formula:
 
 Numerator = 0.3 * f_clk_IO
+
 Denominator = 2 * uStep * N * RPM
 
 OCRnA = [ Numerator / Denominator ] - 1
@@ -112,98 +113,98 @@ At the end of each loop, the system applies a 20ms debounce delay and evaluates 
 The following diagram maps out the hardware relationships and the continuous state-machine logic executed by the microcontroller.
 
 =============================================================================
-                     [ HARDWARE PULSE CHAIN ]
+                          [ HARDWARE PULSE CHAIN ]
 =============================================================================
-  (POT 1) -> [ Timer 0 ] --(Pulses)--> [ TB6600 1 ] --(Drives)--> [ Stepper 1 ]
-  (POT 2) -> [ Timer 1 ] --(Pulses)--> [ TB6600 2 ] --(Drives)--> [ Stepper 2 ]
-  (POT 3) -> [ Timer 2 ] --(Pulses)--> [ TB6600 3 ] --(Drives)--> [ Stepper 3 ]
+  (POT 1) ──► [ Timer 0 ] ──(Pulses)──► [ TB6600 1 ] ──(Drives)──► [ Stepper 1 ]
+  (POT 2) ──► [ Timer 1 ] ──(Pulses)──► [ TB6600 2 ] ──(Drives)──► [ Stepper 2 ]
+  (POT 3) ──► [ Timer 2 ] ──(Pulses)──► [ TB6600 3 ] --(Drives)──► [ Stepper 3 ]
 =============================================================================
 
-                                     |
-                                     v
+                                     │
+                                     ▼
 =============================================================================
-                            [ 1. SYSTEM START ]
+                         [ 1. SYSTEM INITIALIZATION ]
 =============================================================================
-                                     |
-                                     v
-                   +-----------------------------------+
-                   |         WAIT FOR MASTER PLC       |
-                   |   Loop until PLC Signal == HIGH   |
-                   +-----------------------------------+
-                                     |
-                                     v
-                   +-----------------------------------+
-                   |      INITIALIZE HARDWARE ONCE     |
-                   |  - Start Timers (Pulse Gens)      |
-                   |  - Setup TB6600s (Motor Drivers)  |
-                   |  - Setup Limit Switches           |
-                   |  - Setup Potentiometers           |
-                   |  - Set all tracking flags = FALSE |
-                   +-----------------------------------+
-                                     |
-                                     v
+                                     │
+                                     ▼
+                   ┌───────────────────────────────────┐
+                   │        WAIT FOR MASTER PLC        │
+                   │   Loop until PLC Signal == HIGH   │
+                   └───────────────────────────────────┘
+                                     │
+                                     ▼
+                   ┌───────────────────────────────────┐
+                   │     INITIALIZE HARDWARE ONCE      │
+                   │  - Start Timers (Pulse Gens)      │
+                   │  - Setup TB6600s (Motor Drivers)  │
+                   │  - Setup Limit Switches           │
+                   │  - Setup Potentiometers           │
+                   │  - Set all tracking flags = FALSE │
+                   └───────────────────────────────────┘
+                                     │
+                                     ▼
 =============================================================================
                         [ 2. CONTINUOUS MAIN LOOP ]
 =============================================================================
-                                     |
-+----------------------------------->|
-|                                    v
-|                  +-----------------------------------+
-|                  |       MASTER CONTROL CHECK        |
-|                  |       Is PLC Signal HIGH?         |
-|                  +-----------------------------------+
-|                               /         \
-|                             (NO)       (YES)
-|                             /             \
-|   +---------------------------+         +-------------------------------+
-|   |     MASTER PAUSE STATE    |         |        SYSTEM RECOVERY        |
-|   | - Stop pulses to all      |         | Was the system paused before? |
-|   |   TB6600 drivers (DeInit) |         | -> If YES: Restart pulses     |
-|   | - Set OperationPaused=TRUE|         |    and set flag to FALSE.     |
-|   +---------------------------+         +-------------------------------+
-|             |                                           |
-|             |                                           v
-|             |                   +-----------------------------------------------+
-|             |                   |            DYNAMIC SPEED CONTROL              |
-|             |                   | - Is Timer0 active? -> Read POT1 -> Calc RPM  |
-|             |                   |   -> Update Timer0 OCR (Alters Stepper 1 speed|
-|             |                   |      via TB6600 pulses)                       |
-|             |                   |                                               |
-|             |                   | - Read POT2 -> Calc RPM -> Update Timer1 OCR  |
-|             |                   |   (Alters Stepper 2 speed via TB6600 pulses)  |
-|             |                   |                                               |
-|             |                   | - Read POT3 -> Calc RPM -> Update Timer2 OCR  |
-|             |                   |   (Alters Stepper 3 speed via TB6600 pulses)  |
-|             |                   +-----------------------------------------------+
-|             |                                           |
-|             |                                           v
-|             |                   +-----------------------------------------------+
-|             |                   |                 DEBOUNCE DELAY                |
-|             |                   |        Pause for 20ms to settle switches      |
-|             |                   +-----------------------------------------------+
-|             |                                           |
-|             |                                           v
-|             |                   +-----------------------------------------------+
-|             |                   |              SAFETY / BOUNDARY CHECK          |
-|             |                   |         Are BOTH LS1 & LS2 Triggered?         |
-|             |                   +-----------------------------------------------+
-|             |                                  /                  \
-|             |                         (YES - ABNORMAL)       (NO - NORMAL)
-|             |                                /                      \
-|             |        +---------------------------+        +---------------------------+
-|             |        |    ABNORMAL FAULT TRAP    |        |       NORMAL BOUNDARY     |
-|             |        | - Kill Timer0 pulses to   |        | - Was Timer0 paused by a  |
-|             |        |   TB6600 driver 1         |        |   fault? -> If YES:       |
-|             |        | - Set timer0_Paused=TRUE  |        |   Restart Timer0 pulses.  |
-|             |        | - (Stepper 1 stops safely)|        |                           |
-|             |        +---------------------------+        | - LS1 Triggered? (New Hit)|
-|             |                      |                      |   -> Reverse TB6600 Dir   |
-|             |                      |                      |                           |
-|             |                      |                      | - LS2 Triggered? (New Hit)|
-|             |                      |                      |   -> Reverse TB6600 Dir   |
-|             |                      +---------------------------+
-|             |                      |                                    |
-+-------------+----------------------+------------------------------------+
+                                     │
+ ┌───────────────────────────────────┤
+ │                                   ▼
+ │                 ┌───────────────────────────────────┐
+ │                 │       MASTER CONTROL CHECK        │
+ │                 │       Is PLC Signal HIGH?         │
+ │                 └───────────────────────────────────┘
+ │                               /       \
+ │                             (NO)     (YES)
+ │                             /           \
+ │   ┌───────────────────────────┐       ┌───────────────────────────────┐
+ │   │    MASTER PAUSE STATE     │       │        SYSTEM RECOVERY        │
+ │   │ - Stop pulses to all      │       │ Was the system paused before? │
+ │   │   TB6600 drivers (DeInit) │       │ - If YES: Restart pulses      │
+ │   │ - Set OperationPaused=TRUE│       │   and set flag to FALSE.      │
+ │   └───────────────────────────┘       └───────────────────────────────┘
+ │             │                                         │
+ │             │                                         ▼
+ │             │                 ┌───────────────────────────────────────────────┐
+ │             │                 │            DYNAMIC SPEED CONTROL              │
+ │             │                 │ - Is Timer0 active? -> Read POT1 -> Calc RPM  │
+ │             │                 │   -> Update Timer0 OCR (Alters Stepper 1 speed│
+ │             │                 │      via TB6600 pulses)                       │
+ │             │                 │                                               │
+ │             │                 │ - Read POT2 -> Calc RPM -> Update Timer1 OCR  │
+ │             │                 │   (Alters Stepper 2 speed via TB6600 pulses)  │
+ │             │                 │                                               │
+ │             │                 │ - Read POT3 -> Calc RPM -> Update Timer2 OCR  │
+ │             │                 │   (Alters Stepper 3 speed via TB6600 pulses)  │
+ │             │                 └───────────────────────────────────────────────┘
+ │             │                                         │
+ │             │                                         ▼
+ │             │                 ┌───────────────────────────────────────────────┐
+ │             │                 │                DEBOUNCE DELAY                 │
+ │             │                 │       Pause for 20ms to settle switches       │
+ │             │                 └───────────────────────────────────────────────┘
+ │             │                                         │
+ │             │                                         ▼
+ │             │                 ┌───────────────────────────────────────────────┐
+ │             │                 │            SAFETY / BOUNDARY CHECK            │
+ │             │                 │         Are BOTH LS1 & LS2 Triggered?         │
+ │             │                 └───────────────────────────────────────────────┘
+ │             │                                 /               \
+ │             │                        (YES - ABNORMAL)     (NO - NORMAL)
+ │             │                               /                     \
+ │             │       ┌───────────────────────────┐       ┌───────────────────────────┐
+ │             │       │    ABNORMAL FAULT TRAP    │       │       NORMAL BOUNDARY     │
+ │             │       │ - Kill Timer0 pulses to   │       │ - Was Timer0 paused by a  │
+ │             │       │   TB6600 driver 1         │       │   fault? -> If YES:       │
+ │             │       │ - Set timer0_Paused=TRUE  │       │   Restart Timer0 pulses.  │
+ │             │       │ - (Stepper 1 stops safely)│       │                           │
+ │             │       └───────────────────────────┘       │ - LS1 Triggered? (New Hit)│
+ │             │                     │                     │   -> Reverse TB6600 Dir   │
+ │             │                     │                     │                           │
+ │             │                     │                     │ - LS2 Triggered? (New Hit)│
+ │             │                     │                     │   -> Reverse TB6600 Dir   │
+ │             │                     │                     └───────────────────────────┘
+ │             │                     │                                   │
+ └─────────────┴─────────────────────┴───────────────────────────────────┘
 
 ---
 

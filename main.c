@@ -83,7 +83,7 @@ int main(){
 
 
 	//Wait until PLC sends logic high signal then initiate all required drivers
-	while( !( checkForPLC_signal() == LOGIC_HIGH ) );
+	while( !( checkForPLC_signal() == PAUSE_OPERATION ) );
 
 	//Update Flag, as if we exit the above while loop that means we received the signal from PLC
 	PLC_signal_flag = TRUE;
@@ -140,7 +140,7 @@ int main(){
 	while(1){
 
 		//Check PLC signal and update flag
-		if(checkForPLC_signal() == LOGIC_LOW){
+		if(checkForPLC_signal() == PAUSE_OPERATION){
 			PLC_signal_flag = FALSE;
 		} else{
 			PLC_signal_flag = TRUE;
@@ -148,7 +148,7 @@ int main(){
 
 		/*If PLC signal is still high keep operation performing normally
 		 *If signal flag is logic low, then stop stepper motors by stopping timers*/
-		if(PLC_signal_flag == LOGIC_HIGH){
+		if(PLC_signal_flag == TRUE){
 
 			/* Check if operation was paused before
 			 * If yes then re-initiate timers to let stepper motors operate back again

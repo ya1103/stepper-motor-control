@@ -16,7 +16,7 @@
 
 typedef enum {
 		START_OPERATION, PAUSE_OPERATION
-};
+} PLC_StateType;
 
 /******* Function Prototypes **********/
 

@@ -18,22 +18,22 @@ void TB6600_init(){
 	GPIO_setupPinDirection(DRIVER1_PULSE_PORT, DRIVER1_PULSE_PIN, PIN_OUTPUT);
 	GPIO_setupPinDirection(DRIVER1_DIR_PORT, DRIVER1_DIR_PIN, PIN_OUTPUT);
 
-	//Set direction pin for driver 1
-	GPIO_writePin(DRIVER1_DIR_PORT, DRIVER1_DIR_PIN, CLOCKWISE);
+	//Set direction pin for driver 1 which is for the winding stepper
+	GPIO_writePin(DRIVER1_DIR_PORT, DRIVER1_DIR_PIN, ANTICLOCKWISE);
 
 	//Driver2 is derived by pulses of Timer1
 	GPIO_setupPinDirection(DRIVER2_PULSE_PORT, DRIVER2_PULSE_PIN, PIN_OUTPUT);
 	GPIO_setupPinDirection(DRIVER2_DIR_PORT, DRIVER2_DIR_PIN, PIN_OUTPUT);
 
-	//Set direction pin for driver 2
+	//Set direction pin for driver 2 which is for the pulling stepper
 	GPIO_writePin(DRIVER2_DIR_PORT, DRIVER2_DIR_PIN, ANTICLOCKWISE);
 
 	//Driver3 is derived by pulses of Timer2
 	GPIO_setupPinDirection(DRIVER3_PULSE_PORT, DRIVER3_PULSE_PIN, PIN_OUTPUT);
 	GPIO_setupPinDirection(DRIVER3_DIR_PORT, DRIVER3_DIR_PIN, PIN_OUTPUT);
 
-	//Set direction pin for driver 3
-	GPIO_writePin(DRIVER3_DIR_PORT, DRIVER3_DIR_PIN, ANTICLOCKWISE);
+	//Set direction pin for driver 3 which is for the spool filament stepper
+	GPIO_writePin(DRIVER3_DIR_PORT, DRIVER3_DIR_PIN, CLOCKWISE);
 
 	//Enable all drivers using LOGIC LOW as driver is active low
 	GPIO_setupPinDirection(DRIVERS_EN_PORT, DRIVERS_EN_PIN, PIN_OUTPUT);

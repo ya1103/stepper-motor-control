@@ -19,7 +19,7 @@
  *                                Definitions                                  *
  *******************************************************************************/
 #define ADC_MAXIMUM_VALUE    1023
-#define ADC_REF_VOLT_VALUE   2.56
+#define ADC_REF_VOLT_VALUE   5
 
 /*******************************************************************************
  *                      Functions Prototypes                                   *

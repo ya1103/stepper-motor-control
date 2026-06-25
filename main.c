@@ -12,8 +12,20 @@
 #include "potentiometer.h"
 #include "plc.h"
 #include <avr/io.h>
-#include <avr/delay.h>
+#include <util/delay_basic.h>
 
+
+/* replaced with normal delay_ms() from <util/delay.h> as optimization is disabled
+ * so it won't work as intended
+ */
+static void DebounceDelay_ms(uint8 milliseconds)
+{
+	while(milliseconds != 0)
+	{
+		_delay_loop_2((uint16)(F_CPU / 4000UL));
+		milliseconds--;
+	}
+}
 
 /*Function that computes OCR value from RPM argument
  * Returned value should update the OCR register in selected timer later on
@@ -36,8 +48,8 @@ uint8 CalculateCompareValueFromRPM(uint8 RPM){
 	uint8 prescalarOfTimers = 64;
 	uint8 microStepByDriver = 32;
 
-	uint32 numerator = (constant_value * 16000000); // 0.3 * Fclock
-    uint32 denominator = 2 * microStepByDriver * prescalarOfTimers * RPM; // 64 * N * RPM (N=64)
+	uint32 numerator = (constant_value * 16000000); // 0.3 * F_clock_cpu
+    uint32 denominator = (uint32)2 * microStepByDriver * prescalarOfTimers * RPM; // 64 * N * RPM (N=64)
 
     uint32 NewCompareValue = (numerator / denominator) - 1;
 
@@ -69,7 +81,7 @@ int main(){
 		0,
 		250,
 		Timer2,
-		F_CPU_64,
+		Timer2_64,
 		Compare
 	};
 
@@ -135,7 +147,6 @@ int main(){
 
 	//NEW OCR2 value that will be calculated from required RPM
 	uint8 Timer2_NewCompareValue;
-
 
 	while(1){
 
@@ -205,7 +216,7 @@ int main(){
 
 
 			//delay to resolve bouncing effect due to mechanical switch
-			_delay_ms(20);
+			DebounceDelay_ms(20);
 
 			if((LS1_check() == LS_TRIGGERED) && (LS2_check() == LS_TRIGGERED)){
 				//in this case it is abnormal so stop pulses for the stepper motor
@@ -268,5 +279,6 @@ int main(){
 
 			OperationPaused = TRUE;
 		}
+
 	}
 }

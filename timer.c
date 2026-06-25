@@ -15,9 +15,9 @@
  *******************************************************************************/
 
 /* Global variables to hold the address of the call back function in the application */
-static volatile void (*g_callBackPtrTimer0)(void) = NULL_PTR;
-static volatile void (*g_callBackPtrTimer1)(void) = NULL_PTR;
-static volatile void (*g_callBackPtrTimer2)(void) = NULL_PTR;
+static void (* volatile g_callBackPtrTimer0)(void) = NULL_PTR;
+static void (* volatile g_callBackPtrTimer1)(void) = NULL_PTR;
+static void (* volatile g_callBackPtrTimer2)(void) = NULL_PTR;
 
 /*******************************************************************************
  *                       Interrupt Service Routines                            *
@@ -198,7 +198,7 @@ void Timer_deInit(Timer_ID_Type timer_id){
 		TCCR2 &= 0xF8;
 
 		/* Disable compare mode */
-		TCCR0 &= ~(1<<WGM21);
+		TCCR2 &= ~(1<<WGM21);
 	}
 }
 
